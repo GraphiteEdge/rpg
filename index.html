@@ -1,12 +1,93 @@
 <!DOCTYPE html>
-<html>
-  <head>
-  <title> Hero Quest </title>
-  </head>
-  <h1> Hero Quest </h1>
+<html lang="en">
+  <title>Hero Quest</title>
+<head>
+  <meta charset="UTF-8">
+  <title>Hero Quest</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #111;
+      color: #eee;
+      text-align: center;
+      margin-top: 100px;
+    }
+
+    input, button {
+      padding: 10px;
+      font-size: 16px;
+      margin: 10px;
+      border-radius: 5px;
+      border: none;
+    }
+
+    button {
+      background-color: #4CAF50;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    #game {
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Hero Quest</h1>
+
+  <input type="text" id="username" placeholder="USERNAME">
   <br>
-  <form>
-  <input type="text" name=user>
-  <input type="submit" value="START">
-  </form>
-  <body> USERNAME </body>
+  <button onclick="startGame()">START</button>
+
+  <div id="game"></div>
+
+  <script>
+    function startGame() {
+      const usernameInput = document.getElementById("username");
+      const username = usernameInput.value.trim();
+
+      if (username === "") {
+        alert("Please enter a username!");
+        return;
+      }
+
+      // Hide input UI (optional)
+      usernameInput.style.display = "none";
+      document.querySelector("button").style.display = "none";
+
+      // Start the game
+      const gameDiv = document.getElementById("game");
+      gameDiv.innerHTML = `
+        <h2>Welcome, ${username}!</h2>
+        <p>Your adventure begins in a dark forest...</p>
+        <button onclick="firstChoice()">Continue</button>
+      `;
+    }
+
+    function firstChoice() {
+      const gameDiv = document.getElementById("game");
+      gameDiv.innerHTML = `
+        <p>You see two paths ahead.</p>
+        <button onclick="choosePath('left')">Go Left</button>
+        <button onclick="choosePath('right')">Go Right</button>
+      `;
+    }
+
+    function choosePath(path) {
+      const gameDiv = document.getElementById("game");
+
+      if (path === "left") {
+        gameDiv.innerHTML = "<p>You encounter a monster! Game over.</p>";
+      } else {
+        gameDiv.innerHTML = "<p>You find treasure! You win!</p>";
+      }
+    }
+  </script>
+
+</body>
+</html>
