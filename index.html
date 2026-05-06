@@ -5,35 +5,46 @@
 <title>Hero Quest RPG</title>
 
 <style>
-body {
-  background:black;
-  color:crimson;
-  text-align:center;
-  font-family:Arial;
+body{
+    background:black;
+    color:crimson;
+    text-align:center;
+    font-family:Arial;
 }
 
-button, input {
-  padding:10px;
-  margin:5px;
-  border:none;
-  border-radius:5px;
+button,input{
+    padding:10px;
+    margin:5px;
+    border:none;
+    border-radius:5px;
 }
 
-button {
-  background:crimson;
-  color:white;
+button{
+    background:crimson;
+    color:white;
+    cursor:pointer;
 }
 
-button:hover {
-  background:indigo;
+button:hover{
+    background:indigo;
 }
 
-#hud {
-  position:absolute;
-  top:10px;
-  left:10px;
-  color:white;
-  text-align:left;
+#hud{
+    position:absolute;
+    top:10px;
+    left:10px;
+    color:white;
+    text-align:left;
+    border:1px solid crimson;
+    padding:10px;
+    width:150px;
+}
+
+#game{
+    margin-left:280px;
+    margin-top:140px;
+    padding:20px;
+    text-align:left;
 }
 </style>
 </head>
@@ -50,275 +61,502 @@ button:hover {
 <button onclick="setClass('Rogue')">Rogue</button>
 </div>
 
-<button onclick="startGame()">START / LOAD</button>
+<button id="startBtn" onclick="startGame()">START / LOAD</button>
 
 <div id="hud"></div>
 <div id="game"></div>
 
 <script>
 
-/* ===== PLAYER ===== */
-let player = {
-  name:"",
-  class:"",
-  hp:100,
-  maxHp:100,
-  str:10,
-  def:10,
-  agi:10,
-  level:1,
-  xp:0,
-  skillPoints:0,
-  inventory:[],
-  story:"village",
-  flags:{}
-};
+/* ================= PLAYER ================= */
 
-let currentEnemy=null;
-let returnNode="village";
+const defaultPlayer = () => ({
+    name:"",
+    class:"",
+    hp:100,
+    maxHp:100,
+    str:10,
+    def:10,
+    agi:10,
+    level:1,
+    xp:0,
+    skillPoints:0,
+    inventory:[],
+    story:"village",
+    flags:{}
+});
 
-/* ===== HUD ===== */
+let player = defaultPlayer();
+
+let currentEnemy = null;
+let returnNode = "village";
+
+/* ================= HUD ================= */
+
 function updateHUD(){
-document.getElementById("hud").innerHTML=`
-<b>${player.name || "No Name"} (${player.class || "No Class"})</b><br>
-HP:${player.hp}/${player.maxHp}<br>
-STR:${player.str} DEF:${player.def} AGI:${player.agi}<br>
-LVL:${player.level} XP:${player.xp}<br>
-SkillPts:${player.skillPoints}<br>
-Items:${player.inventory.join(", ") || "None"}
-`;
+
+    document.getElementById("hud").innerHTML = `
+    <b>${player.name || "No Name"} (${player.class || "No Class"})</b><br><br>
+
+    HP: ${player.hp}/${player.maxHp}<br>
+
+    STR: ${player.str}<br>
+    DEF: ${player.def}<br>
+    AGI: ${player.agi}<br><br>
+
+    LVL: ${player.level}<br>
+    XP: ${player.xp}/50<br>
+    SkillPts: ${player.skillPoints}<br><br>
+
+    Items:<br>
+    ${player.inventory.length ? player.inventory.join(", ") : "None"}
+    `;
 }
 
-/* ===== CLASS ===== */
+/* ================= CLASS ================= */
+
 function setClass(c){
-player.class=c;
 
-if(c==="Warrior"){ player.str=15; player.def=12; player.agi=5; }
-if(c==="Mage"){ player.str=8; player.def=6; player.agi=10; player.mana=50; }
-if(c==="Rogue"){ player.str=10; player.def=8; player.agi=15; }
+    player.class = c;
 
-updateHUD();
+    if(c === "Warrior"){
+        player.str = 15;
+        player.def = 12;
+        player.agi = 5;
+    }
+
+    if(c === "Mage"){
+        player.str = 8;
+        player.def = 6;
+        player.agi = 10;
+    }
+
+    if(c === "Rogue"){
+        player.str = 10;
+        player.def = 8;
+        player.agi = 15;
+    }
+
+    updateHUD();
 }
 
-/* ===== SAVE / LOAD ===== */
+/* ================= SAVE / LOAD ================= */
+
 function saveGame(){
-localStorage.setItem("hero_"+player.name,JSON.stringify(player));
+    localStorage.setItem(
+        "hero_" + player.name,
+        JSON.stringify(player)
+    );
 }
 
 function loadGame(name){
-let d=localStorage.getItem("hero_"+name);
-if(!d) return false;
-let data=JSON.parse(d);
-player={...player,...data};
-return true;
+
+    let data = localStorage.getItem("hero_" + name);
+
+    if(!data) return false;
+
+    player = JSON.parse(data);
+
+    return true;
 }
 
-/* ===== START ===== */
+/* ================= START GAME ================= */
+
 function startGame(){
-let name=document.getElementById("username").value.trim();
-if(!name) return alert("Enter username!");
 
-if(!loadGame(name)){
-if(!player.class) return alert("Pick a class!");
-player.name=name;
+    let name = document.getElementById("username").value.trim();
+
+    if(!name){
+        alert("Enter username!");
+        return;
+    }
+
+    if(!loadGame(name)){
+
+        if(!player.class){
+            alert("Pick a class!");
+            return;
+        }
+
+        player.name = name;
+        saveGame();
+    }
+
+    document.getElementById("title").style.display = "none";
+    document.getElementById("username").style.display = "none";
+    document.getElementById("classSelect").style.display = "none";
+    document.getElementById("startBtn").style.display = "none";
+
+    updateHUD();
+    loadStory();
 }
 
-document.getElementById("title").style.display="none";
-document.getElementById("username").style.display="none";
-document.getElementById("classSelect").style.display="none";
-document.querySelectorAll("button").forEach(b=>b.style.display="none");
+/* ================= STORY ================= */
 
-updateHUD();
-loadStory();
-}
+const story = {
 
-/* ===== STORY ===== */
-const story={
+    village:{
+        text:"You arrive in a fearful village. The Elder needs help.",
+        choices:[
+            {text:"Talk to Elder", next:"elder"},
+            {text:"Go to Forest", next:"forest"},
+            {text:"Open Skills", action:openSkills},
+            {text:"Check Inventory", action:openInventory}
+        ]
+    },
 
-village:{
-text:"You arrive in a fearful village. The Elder needs help.",
-choices:[
-{text:"Talk to Elder", next:"elder"},
-{text:"Go to Forest", next:"forest"},
-{text:"Open Skills", action:openSkills},
-{text:"Check Inventory", action:openInventory}
-]
-},
+    elder:{
+        text:"Elder: 'Clear the forest and return safely.'",
+        choices:[
+            {text:"Accept Quest", next:"forest"},
+            {text:"Back", next:"village"}
+        ]
+    },
 
-elder:{
-text:"Elder: 'Clear the forest and return safely.'",
-choices:[
-{text:"Accept Quest", next:"forest"},
-{text:"Back", next:"village"}
-]
-},
-
-forest:{
-text:"The forest is dangerous...",
-action:()=>startExploration("forest","village"),
-choices:[]
-}
+    forest:{
+        text:"The forest is dangerous...",
+        action:() => startExploration("forest","village"),
+        choices:[]
+    }
 
 };
 
-/* ===== STORY ENGINE ===== */
+/* ================= STORY ENGINE ================= */
+
 function loadStory(){
-let node=story[player.story];
 
-if(node.action){ node.action(); return; }
+    let node = story[player.story];
 
-let html=`<p>${node.text}</p>`;
+    if(!node){
+        player.story = "village";
+        node = story[player.story];
+    }
 
-node.choices.forEach(c=>{
-if(c.action){
-html+=`<button onclick="(${c.action})()">${c.text}</button>`;
-}else{
-html+=`<button onclick="go('${c.next}')">${c.text}</button>`;
+    if(node.action){
+        node.action();
+        return;
+    }
+
+    let html = `<p>${node.text}</p>`;
+
+    node.choices.forEach(choice => {
+
+        if(choice.action){
+
+            html += `
+            <button onclick="${choice.action.name}()">
+            ${choice.text}
+            </button>
+            `;
+
+        }else{
+
+            html += `
+            <button onclick="go('${choice.next}')">
+            ${choice.text}
+            </button>
+            `;
+        }
+    });
+
+    document.getElementById("game").innerHTML = html;
 }
-});
 
-document.getElementById("game").innerHTML=html;
-}
+/* ================= NAVIGATION ================= */
 
 function go(next){
-player.story=next;
-saveGame();
-loadStory();
+
+    player.story = next;
+
+    saveGame();
+
+    loadStory();
 }
 
-/* ===== EXPLORATION ===== */
+/* ================= EXPLORATION ================= */
+
 function startExploration(area,returnTo){
-returnNode=returnTo;
 
-if(Math.random()<0.75){
-startCombat(randomEnemy());
-}else{
-player.inventory.push("Herb");
-updateHUD();
-document.getElementById("game").innerHTML=`
-<p>You found an Herb!</p>
-<button onclick="endActivity()">Continue</button>`;
-}
+    returnNode = returnTo;
+
+    if(Math.random() < 0.75){
+
+        startCombat(randomEnemy());
+
+    }else{
+
+        player.inventory.push("Herb");
+
+        updateHUD();
+
+        saveGame();
+
+        document.getElementById("game").innerHTML = `
+        <p>You found an Herb!</p>
+        <button onclick="endActivity()">Continue</button>
+        `;
+    }
 }
 
 function endActivity(){
-player.story=returnNode;
-saveGame();
-loadStory();
+
+    player.story = returnNode;
+
+    saveGame();
+
+    loadStory();
 }
 
-/* ===== COMBAT ===== */
+/* ================= COMBAT ================= */
+
 function startCombat(enemy){
-currentEnemy={...enemy};
 
-if(player.agi>=enemy.agi){
-renderCombat();
-}else{
-enemyTurn();
-}
+    currentEnemy = {...enemy};
+
+    renderCombat();
+
+    if(currentEnemy.agi > player.agi){
+        enemyTurn();
+    }
 }
 
 function renderCombat(){
-document.getElementById("game").innerHTML=`
-<p>${currentEnemy.name} HP:${currentEnemy.hp}</p>
-<button onclick="attack()">Attack</button>
-<button onclick="defend()">Defend</button>
-<button onclick="run()">Run</button>
-`;
+
+    updateHUD();
+
+    document.getElementById("game").innerHTML = `
+    <h2>${currentEnemy.name}</h2>
+
+    <p>
+    Enemy HP: ${currentEnemy.hp}
+    </p>
+
+    <button onclick="attack()">Attack</button>
+    <button onclick="defend()">Defend</button>
+    <button onclick="run()">Run</button>
+    `;
 }
 
 function calcDamage(att,def){
-return Math.max(1,Math.floor(att - def/2));
+
+    return Math.max(
+        1,
+        Math.floor(att - (def / 2))
+    );
 }
 
 function attack(){
-currentEnemy.hp-=calcDamage(player.str,currentEnemy.def);
-if(currentEnemy.hp<=0) return winCombat();
-enemyTurn();
+
+    currentEnemy.hp -= calcDamage(
+        player.str,
+        currentEnemy.def
+    );
+
+    if(currentEnemy.hp <= 0){
+        winCombat();
+        return;
+    }
+
+    enemyTurn();
 }
 
 function defend(){
-player.def+=3;
-enemyTurn();
-player.def-=3;
+
+    let originalDef = player.def;
+
+    player.def += 3;
+
+    enemyTurn();
+
+    player.def = originalDef;
+}
+
+function run(){
+
+    document.getElementById("game").innerHTML = `
+    <p>You escaped safely.</p>
+    <button onclick="endActivity()">Continue</button>
+    `;
 }
 
 function enemyTurn(){
-player.hp-=calcDamage(currentEnemy.str,player.def);
 
-if(player.hp<=0){
-document.getElementById("game").innerHTML="<p>You died. Game Over.</p>";
-return;
-}
+    player.hp -= calcDamage(
+        currentEnemy.str,
+        player.def
+    );
 
-updateHUD();
-renderCombat();
+    if(player.hp <= 0){
+
+        player.hp = 0;
+
+        updateHUD();
+
+        document.getElementById("game").innerHTML = `
+        <h1>GAME OVER</h1>
+        <button onclick="location.reload()">Restart</button>
+        `;
+
+        return;
+    }
+
+    updateHUD();
+
+    renderCombat();
 }
 
 function winCombat(){
-player.xp+=20;
 
-if(player.xp>=50){
-player.level++;
-player.skillPoints++;
-player.str+=2;
-player.def+=2;
-player.agi+=1;
-player.maxHp+=10;
-player.hp=player.maxHp;
-player.xp=0;
+    player.xp += 20;
+
+    if(player.xp >= 50){
+
+        player.level++;
+
+        player.skillPoints++;
+
+        player.str += 2;
+        player.def += 2;
+        player.agi += 1;
+
+        player.maxHp += 10;
+        player.hp = player.maxHp;
+
+        player.xp = 0;
+    }
+
+    saveGame();
+
+    updateHUD();
+
+    document.getElementById("game").innerHTML = `
+    <h2>Victory!</h2>
+
+    <p>You defeated the ${currentEnemy.name}.</p>
+
+    <button onclick="endActivity()">
+    Continue
+    </button>
+    `;
 }
 
-updateHUD();
+/* ================= ENEMIES ================= */
 
-document.getElementById("game").innerHTML=`
-<p>Victory!</p>
-<button onclick="endActivity()">Continue</button>`;
-}
-
-/* ===== ENEMIES ===== */
 function randomEnemy(){
-return {name:"Wolf",hp:40,str:10,def:5,agi:8};
+
+    const enemies = [
+
+        {
+            name:"Wolf",
+            hp:40,
+            str:10,
+            def:5,
+            agi:8
+        },
+
+        {
+            name:"Goblin",
+            hp:50,
+            str:12,
+            def:6,
+            agi:6
+        },
+
+        {
+            name:"Dark Slime",
+            hp:30,
+            str:8,
+            def:3,
+            agi:4
+        }
+
+    ];
+
+    return enemies[
+        Math.floor(Math.random() * enemies.length)
+    ];
 }
 
-/* ===== SKILLS ===== */
+/* ================= SKILLS ================= */
+
 function openSkills(){
-document.getElementById("game").innerHTML=`
-<p>Skill Tree</p>
-<button onclick="upgrade('str')">+STR</button>
-<button onclick="upgrade('def')">+DEF</button>
-<button onclick="upgrade('agi')">+AGI</button>
-<button onclick="loadStory()">Back</button>
-`;
+
+    document.getElementById("game").innerHTML = `
+    <h2>Skill Tree</h2>
+
+    <p>Available Points: ${player.skillPoints}</p>
+
+    <button onclick="upgrade('str')">
+    +STR
+    </button>
+
+    <button onclick="upgrade('def')">
+    +DEF
+    </button>
+
+    <button onclick="upgrade('agi')">
+    +AGI
+    </button>
+
+    <br><br>
+
+    <button onclick="loadStory()">
+    Back
+    </button>
+    `;
 }
 
 function upgrade(stat){
-if(player.skillPoints<=0) return;
-player[stat]+=2;
-player.skillPoints--;
-updateHUD();
-openSkills();
+
+    if(player.skillPoints <= 0){
+        alert("No skill points!");
+        return;
+    }
+
+    player[stat] += 2;
+
+    player.skillPoints--;
+
+    saveGame();
+
+    updateHUD();
+
+    openSkills();
 }
 
-/* ===== INVENTORY ===== */
+/* ================= INVENTORY ================= */
+
 function openInventory(){
-let html="<p>Inventory</p>";
 
-if(player.inventory.length===0){
-html+="<p>Empty</p>";
-}else{
-player.inventory.forEach((item,i)=>{
-html+=`<p>${item}</p>`;
-});
+    let html = `
+    <h2>Inventory</h2>
+    `;
+
+    if(player.inventory.length === 0){
+
+        html += `<p>Empty</p>`;
+
+    }else{
+
+        player.inventory.forEach(item => {
+            html += `<p>${item}</p>`;
+        });
+    }
+
+    html += `
+    <button onclick="loadStory()">
+    Back
+    </button>
+    `;
+
+    document.getElementById("game").innerHTML = html;
 }
 
-html+=`<button onclick="loadStory()">Back</button>`;
-document.getElementById("game").innerHTML=html;
-}
+/* ================= INIT ================= */
 
-/* ===== INIT ===== */
 updateHUD();
 
 </script>
+
 </body>
 </html>
