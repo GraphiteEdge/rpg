@@ -38,7 +38,7 @@ button:hover{
     text-align:left;
     border:1px solid crimson;
     padding:10px;
-    width:135px;
+    width:200px;
     background:black;
 }
 
@@ -59,7 +59,7 @@ button:hover{
 
 <div id="classSelect">
 <button onclick="setClass('Swordsman')">Swordsman</button>
-<button onclick="setClass('Mage')">Mage</button>
+<button onclick="setClass('Warrior')">Warrior</button>
 <button onclick="setClass('Thief')">Thief</button>
 </div>
 
@@ -77,11 +77,8 @@ const defaultPlayer = () => ({
     name:"",
     class:"",
 
-    hp:50,
-    maxHp:50,
-
-  mp:10,
-  maxMp: 12,
+    hp:100,
+    maxHp:100,
 
     str:10,
     def:10,
@@ -130,7 +127,6 @@ function updateHUD(){
     ${player.class || "No Class"}<br><br>
 
     HP: ${player.hp}/${player.maxHp}<br>
-    MP: ${player.mp}/${player.maxMp}<br>
     Gold: ${player.gold}<br><br>
 
     STR: ${player.str}<br>
@@ -157,23 +153,20 @@ function setClass(c){
 
     if(c === "Swordsman"){
         player.str = 15;
-        player.def = 12;
-        player.agi = 11;
-        player.maxMP = 2;
+        player.def = 5;
+        player.agi = 10;
     }
 
-    if(c === "Mage"){
-        player.str = 5;
-        player.def = 3;
-        player.agi = 15;
-        player.maxMP = 17;
+    if(c === "Warrior"){
+        player.str = 15;
+        player.def = 10;
+        player.agi = 5;
     }
 
-    if(c === "Rogue"){
+    if(c === "Thief"){
         player.str = 10;
-        player.def = 8;
-        player.agi = 17;
-        player.maxMP = 5;
+        player.def = 5;
+        player.agi = 15;
     }
 
     updateHUD();
@@ -207,7 +200,7 @@ function startGame(){
     let name = document.getElementById("username").value.trim();
 
     if(!name){
-        alert("Enter username!");
+        alert("Enter a username!");
         return;
     }
 
@@ -529,8 +522,6 @@ function winCombat(){
 
         player.maxHp += 7;
         player.hp = player.maxHp;
-        player.mxMP += 1;
-        player.mp = player.maxMP;
 
         player.nextLevelXp = Math.floor(
             player.nextLevelXp * 1.35
@@ -714,8 +705,8 @@ function openSkills(){
     +AGI
     </button>
 
-   <button onclick="upgrade('maxMP')">
-    +MP
+   <button onclick="upgrade('maxHp')">
+    +HP
     </button>
 
     <br><br>
