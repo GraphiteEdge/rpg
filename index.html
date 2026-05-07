@@ -155,18 +155,21 @@ function setClass(c){
         player.str = 15;
         player.def = 5;
         player.agi = 10;
+        player.maxHp = 100;
     }
 
     if(c === "Warrior"){
         player.str = 15;
         player.def = 10;
         player.agi = 5;
+        player.maxHp = 100;
     }
 
     if(c === "Thief"){
         player.str = 10;
         player.def = 5;
         player.agi = 15;
+        player.maxHp = 100;
     }
 
     updateHUD();
@@ -703,10 +706,6 @@ function openSkills(){
 
     <button onclick="upgrade('agi')">
     +AGI
-    </button>
-
-   <button onclick="upgrade('maxHp')">
-    +HP
     </button>
 
     <br><br>
