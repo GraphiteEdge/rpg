@@ -99,6 +99,8 @@ const defaultPlayer = () => ({
     },
 
     story:"village",
+    visitedLocations:["village"],
+    unlockedLocations:["village"],
 
     flags:{
         elderQuest:false,
@@ -142,6 +144,12 @@ function updateHUD(){
 
     Items:<br>
     ${player.inventory.length ? player.inventory.join(", ") : "None"}
+
+    <br><br>
+
+    <button onclick="openWorldMap()">
+    World Map
+    </button>
     `;
 }
 
@@ -368,9 +376,56 @@ function go(next){
 
     player.story = next;
 
+    if(!player.visitedLocations.includes(next)){
+        player.visitedLocations.push(next);
+    }
+
+    if(!player.unlockedLocations.includes(next)){
+        player.unlockedLocations.push(next);
+    }
+
     saveGame();
 
     loadStory();
+}
+
+function openWorldMap(){
+
+    let html = `
+    <h2>World Map</h2>
+    <p>Travel to any unlocked location.</p>
+    `;
+
+    const locationNames = {
+        village:"Ashmoor Village",
+        elder:"Elder's Hut",
+        shop:"Village Shop",
+        forest:"Dark Forest",
+        cryptEntrance:"Ancient Crypt",
+        crypt:"Crypt Depths",
+        necromancerRoom:"Necromancer Chamber",
+        dragonMountain:"Dragon Mountain",
+        ending:"Kingdom Plaza"
+    };
+
+    player.unlockedLocations.forEach(loc => {
+
+        html += `
+        <button onclick="go('${loc}')">
+        ${locationNames[loc] || loc}
+        </button>
+        <br>
+        `;
+    });
+
+    html += `
+    <br>
+    <button onclick="loadStory()">
+    Back
+    </button>
+    `;
+
+    document.getElementById("game").innerHTML = html;
 }
 
 /* ================= EXPLORATION ================= */
@@ -750,10 +805,101 @@ function openInventory(){
 
     }else{
 
-        player.inventory.forEach(item => {
-            html += `<p>${item}</p>`;
+        player.inventory.forEach((item,index) => {
+
+            html += `
+            <div style="margin:10px;border:1px solid crimson;padding:10px;">
+
+            <b>${item}</b><br><br>
+
+            <button onclick="useItem(${index})">
+            Use
+            </button>
+
+            <button onclick="dropItem(${index})">
+            Drop
+            </button>
+
+            </div>
+            `;
         });
     }
+
+    html += `
+    <button onclick="loadStory()">
+    Back
+    </button>
+    `;
+
+    document.getElementById("game").innerHTML = html;
+}
+
+function useItem(index){
+
+        alert("You used a Potion and restored HP!");
+
+        player.inventory.splice(index,1);
+    }
+
+    else if(item === "Herb"){
+
+        player.hp += 15;
+
+        if(player.hp > player.maxHp){
+            player.hp = player.maxHp;
+        }
+
+        alert("You used an Herb!");
+
+        player.inventory.splice(index,1);
+    }
+
+    else if(item === "Chief's Blade"){
+
+        player.equipment.weapon = "Chief's Blade";
+        player.str += 5;
+
+        alert("Equipped Chief's Blade!");
+    }
+
+    else if(item === "Shadow Robe"){
+
+        player.equipment.armor = "Shadow Robe";
+        player.def += 5;
+
+        alert("Equipped Shadow Robe!");
+    }
+
+    else if(item === "Dragon Fang"){
+
+        player.equipment.weapon = "Dragon Fang";
+        player.str += 10;
+
+        alert("Equipped Dragon Fang!");
+    }
+
+    saveGame();
+
+    updateHUD();
+
+    openInventory();
+}
+
+function dropItem(index){
+
+    let item = player.inventory[index];
+
+    if(confirm("Drop " + item + "?")){
+
+        player.inventory.splice(index,1);
+
+        saveGame();
+
+        updateHUD();
+
+        openInventory();
+    }
+}
 
     html += `
     <button onclick="loadStory()">
@@ -826,11 +972,17 @@ function endAfterBattle(){
     if(player.story === "cryptEntrance"){
         loadStory();
         return;
+        if(!player.unlockedLocations.includes("cryptEntrance")){
+    player.unlockedLocations.push("cryptEntrance");
+}
     }
 
     if(player.story === "dragonMountain"){
         loadStory();
         return;
+        if(!player.unlockedLocations.includes("dragonMountain")){
+    player.unlockedLocations.push("dragonMountain");
+}
     }
 
     endActivity();
