@@ -31,14 +31,15 @@ button:hover{
 }
 
 #hud{
-    position:absolute;
+    position:fixed;
     top:10px;
     left:10px;
     color:white;
     text-align:left;
     border:1px solid crimson;
     padding:10px;
-    width:200px;
+    height: 365px;
+    width:150px;
     background:black;
 }
 
@@ -75,7 +76,7 @@ button:hover{
 const defaultPlayer = () => ({
 
     name:"",
-    class:"",
+    playerClass:"",
 
     hp:100,
     maxHp:100,
@@ -113,6 +114,8 @@ const defaultPlayer = () => ({
 
 let player = defaultPlayer();
 
+window.player = player;
+
 let currentEnemy = null;
 let returnNode = "village";
 
@@ -120,13 +123,16 @@ let returnNode = "village";
 
 function updateHUD(){
 
+    const hud = document.getElementById("hud");
+
+    if(!hud) return;
+
     let weapon = player.equipment.weapon || "None";
     let armor = player.equipment.armor || "None";
 
-    document.getElementById("hud").innerHTML = `
-
+    hud.innerHTML = `
     <b>${player.name || "No Name"}</b><br>
-    ${player.class || "No Class"}<br><br>
+    ${player.playerClass || "No Class"}<br><br>
 
     HP: ${player.hp}/${player.maxHp}<br>
     Gold: ${player.gold}<br><br>
@@ -157,27 +163,27 @@ function updateHUD(){
 
 function setClass(c){
 
-    player.class = c;
+    player.playerClass = c;
+
+    player.hp = 100;
+    player.maxHp = 100;
 
     if(c === "Swordsman"){
         player.str = 15;
         player.def = 5;
         player.agi = 10;
-        player.maxHp = 100;
     }
 
     if(c === "Warrior"){
         player.str = 15;
         player.def = 10;
         player.agi = 5;
-        player.maxHp = 100;
     }
 
     if(c === "Thief"){
         player.str = 10;
         player.def = 5;
         player.agi = 15;
-        player.maxHp = 100;
     }
 
     updateHUD();
@@ -217,7 +223,7 @@ function startGame(){
 
     if(!loadGame(name)){
 
-        if(!player.class){
+        if(!player.playerClass){
             alert("Pick a class!");
             return;
         }
@@ -836,6 +842,16 @@ function openInventory(){
 
 function useItem(index){
 
+    let item = player.inventory[index];
+
+    if(item === "Potion"){
+
+        player.hp += 40;
+
+        if(player.hp > player.maxHp){
+            player.hp = player.maxHp;
+        }
+
         alert("You used a Potion and restored HP!");
 
         player.inventory.splice(index,1);
@@ -857,7 +873,6 @@ function useItem(index){
     else if(item === "Chief's Blade"){
 
         player.equipment.weapon = "Chief's Blade";
-        player.str += 5;
 
         alert("Equipped Chief's Blade!");
     }
@@ -865,7 +880,6 @@ function useItem(index){
     else if(item === "Shadow Robe"){
 
         player.equipment.armor = "Shadow Robe";
-        player.def += 5;
 
         alert("Equipped Shadow Robe!");
     }
@@ -873,7 +887,6 @@ function useItem(index){
     else if(item === "Dragon Fang"){
 
         player.equipment.weapon = "Dragon Fang";
-        player.str += 10;
 
         alert("Equipped Dragon Fang!");
     }
@@ -899,15 +912,6 @@ function dropItem(index){
 
         openInventory();
     }
-}
-
-    html += `
-    <button onclick="loadStory()">
-    Back
-    </button>
-    `;
-
-    document.getElementById("game").innerHTML = html;
 }
 
 /* ================= SHOP ================= */
@@ -970,19 +974,23 @@ function endAfterBattle(){
     }
 
     if(player.story === "cryptEntrance"){
+
+        if(!player.unlockedLocations.includes("cryptEntrance")){
+            player.unlockedLocations.push("cryptEntrance");
+        }
+
         loadStory();
         return;
-        if(!player.unlockedLocations.includes("cryptEntrance")){
-    player.unlockedLocations.push("cryptEntrance");
-}
     }
 
     if(player.story === "dragonMountain"){
+
+        if(!player.unlockedLocations.includes("dragonMountain")){
+            player.unlockedLocations.push("dragonMountain");
+        }
+
         loadStory();
         return;
-        if(!player.unlockedLocations.includes("dragonMountain")){
-    player.unlockedLocations.push("dragonMountain");
-}
     }
 
     endActivity();
