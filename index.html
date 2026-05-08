@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Hero Quest RPG</title>
+<title>Hero Quest</title>
 
 <style>
 body{
@@ -131,28 +131,24 @@ function updateHUD(){
 
     <b>${player.name || "No Name"}</b><br>
     ${player.playerClass || "No Class"}<br><br>
-
+    LV: ${player.level}<br>
     HP: ${player.hp}/${player.maxHp}<br>
-    Gold: ${player.gold}<br><br>
+    GOLD: ${player.gold}<br><br>
 
     STR: ${player.str}<br>
     DEF: ${player.def}<br>
     AGI: ${player.agi}<br><br>
 
-    LVL: ${player.level}<br>
-    XP: ${player.xp}/${player.nextLevelXp}<br>
-    SkillPts: ${player.skillPoints}<br><br>
+    EXP: ${player.xp}/${player.nextLevelXp}<br>
+    SKILL POINTS: ${player.skillPoints}<br><br>
 
-    Weapon: ${weapon}<br>
-    Armor: ${armor}<br><br>
-
-    Items:<br>
-    ${player.inventory.length ? player.inventory.join(", ") : "None"}
+    WEAPON: ${weapon}<br>
+    ARMOR: ${armor}<br><br>
 
     <br><br>
 
     <button onclick="openWorldMap()">
-    World Map
+    WORLD MAP
     </button>
     `;
 }
@@ -192,14 +188,14 @@ function setClass(c){
 function saveGame(){
 
     localStorage.setItem(
-        "hero_" + player.name,
+        "hero_" + player.name + player.playerClass,
         JSON.stringify(player)
     );
 }
 
 function loadGame(name){
 
-    let data = localStorage.getItem("hero_" + name);
+    let data = localStorage.getItem("hero_" + player.name + player.playerClass);
 
     if(!data) return false;
 
@@ -222,7 +218,7 @@ function startGame(){
     if(!loadGame(name)){
 
         if(!player.playerClass){
-            alert("Pick a class!");
+            alert("Pick a Class!");
             return;
         }
 
@@ -422,22 +418,58 @@ function openWorldMap(){
     document.getElementById("game").innerHTML = html;
 }
 
+function unlockLocation(loc){
+
+    if(!player.unlockedLocations.includes(loc)){
+        player.unlockedLocations.push(loc);
+    }
+}
 /* ================= EXPLORATION ================= */
 
-function startExploration(area,returnTo){
+function startExploration(area, returnTo){
 
     returnNode = returnTo;
 
+    // 🌑 CRYPT STORY PROGRESSION TRIGGER
+    if(area === "crypt"){
+
+        // first entry after Goblin Chief death triggers deeper story shift
+        if(player.flags.goblinChiefDead && !player.flags.cryptUnlockedEvent){
+
+            player.flags.cryptUnlockedEvent = true;
+
+            document.getElementById("game").innerHTML = `
+                <p>The Crypt reacts to your presence... something deeper awakens.</p>
+                <button onclick="startExploration('crypt','cryptEntrance')">
+                    Descend Further
+                </button>
+            `;
+
+            saveGame();
+            return;
+        }
+
+        // chance to force deeper crypt boss encounter
+        if(player.flags.goblinChiefDead && Math.random() < 0.25){
+
+            startCombat({
+                name:"Crypt Wraith",
+                hp:90,
+                str:16,
+                def:8,
+                agi:12,
+                xp:45
+            });
+
+            return;
+        }
+    }
+
     if(Math.random() < 0.75){
-
         startCombat(randomEnemy());
-
-    }else{
-
+    } else {
         player.inventory.push("Herb");
-
         updateHUD();
-
         saveGame();
 
         document.getElementById("game").innerHTML = `
@@ -479,7 +511,7 @@ function renderCombat(){
     <p>Enemy HP: ${currentEnemy.hp}</p>
 
     <button onclick="attack()">Attack</button>
-    <button onclick="defend()">Defend</button>
+    <button onclick="itemUse()">Use Item</button>
     <button onclick="run()">Run</button>
     `;
 }
@@ -507,15 +539,47 @@ function attack(){
     enemyTurn();
 }
 
-function defend(){
+function itemUse(){
 
-    let originalDef = player.def;
+    if(player.inventory.length === 0){
+        alert("No items!");
+        return;
+    }
 
-    player.def += 3;
+    let item = player.inventory[0];
 
-    enemyTurn();
+    // POTION
+    if(item === "Potion"){
 
-    player.def = originalDef;
+        player.hp += 40;
+        if(player.hp > player.maxHp) player.hp = player.maxHp;
+
+        alert("You used a Potion!");
+        player.inventory.splice(0,1);
+    }
+
+    // HERB
+    else if(item === "Herb"){
+
+        player.hp += 15;
+        if(player.hp > player.maxHp) player.hp = player.maxHp;
+
+        alert("You used an Herb!");
+        player.inventory.splice(0,1);
+    }
+
+    // EQUIPMENT ITEM
+    else if(item === "Chief's Blade"){
+
+        player.equipment.weapon = "Chief's Blade";
+        alert("Equipped Chief's Blade!");
+    }
+
+    saveGame();
+    updateHUD();
+
+    // IMPORTANT: return to combat instead of opening inventory UI
+    renderCombat();
 }
 
 function run(){
@@ -577,9 +641,16 @@ function winCombat(){
 
     if(currentEnemy.name === "Goblin Chief"){
 
-        player.flags.goblinChiefDead = true;
-        player.flags.cryptUnlocked = true;
-        player.story = "cryptEntrance";
+    player.flags.goblinChiefDead = true;
+    player.flags.cryptUnlocked = true;
+
+    player.inventory.push("Chief's Blade");
+
+    unlockLocation("cryptEntrance");
+    unlockLocation("crypt");
+    unlockLocation("forest"); // ensures map continuity
+
+    player.story = "cryptEntrance";
     }
 
     if(currentEnemy.name === "Ancient Dragon"){
@@ -684,7 +755,7 @@ function generateLoot(enemy){
 
         player.inventory.push("Chief's Blade");
 
-        drops.push("RARE: Chief's Blade");
+        drops.push("Item: Chief's Blade");
     }
 
     return drops;
@@ -890,6 +961,7 @@ window.endActivity = endActivity;
 window.endAfterBattle = endAfterBattle;
 window.buyPotion = buyPotion;
 window.startDragonFight = startDragonFight;
+window.itemUse = itemUse;
 
 /* ================= INIT ================= */
 
