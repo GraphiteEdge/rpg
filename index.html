@@ -34,17 +34,18 @@ button:hover{
     position:fixed;
     top:10px;
     left:10px;
+    width:220px;
+    min-height:300px;
     color:white;
     text-align:left;
     border:1px solid crimson;
     padding:10px;
-    height: 365px;
-    width:150px;
     background:black;
+    overflow-y:auto;
 }
 
 #game{
-    margin-left:180px;
+    margin-left:260px;
     margin-top:40px;
     padding:20px;
     text-align:center;
@@ -114,8 +115,6 @@ const defaultPlayer = () => ({
 
 let player = defaultPlayer();
 
-window.player = player;
-
 let currentEnemy = null;
 let returnNode = "village";
 
@@ -125,12 +124,11 @@ function updateHUD(){
 
     const hud = document.getElementById("hud");
 
-    if(!hud) return;
-
     let weapon = player.equipment.weapon || "None";
     let armor = player.equipment.armor || "None";
 
     hud.innerHTML = `
+
     <b>${player.name || "No Name"}</b><br>
     ${player.playerClass || "No Class"}<br><br>
 
@@ -310,14 +308,6 @@ crypt:{
     choices:[]
 },
 
-necromancerRoom:{
-    text:"The Necromancer Lord waits beside a cursed altar.",
-    choices:[
-        {text:"Fight Necromancer", action:startNecromancerFight},
-        {text:"Retreat", next:"cryptEntrance"}
-    ]
-},
-
 dragonMountain:{
     text:"At the peak of the mountain, the Ancient Dragon awakens.",
     choices:[
@@ -327,7 +317,7 @@ dragonMountain:{
 },
 
 ending:{
-    text:"With the Ancient Dragon defeated, the kingdom is finally safe. The people of Ashmoor celebrate your name for generations.",
+    text:"With the Ancient Dragon defeated, the kingdom is finally safe.",
     choices:[
         {text:"Continue Exploring", next:"village"}
     ]
@@ -357,8 +347,10 @@ function loadStory(){
 
         if(choice.action){
 
+            const actionName = choice.action.name;
+
             html += `
-            <button onclick="${choice.action.name}()">
+            <button onclick="${actionName}()">
             ${choice.text}
             </button>
             `;
@@ -409,7 +401,6 @@ function openWorldMap(){
         forest:"Dark Forest",
         cryptEntrance:"Ancient Crypt",
         crypt:"Crypt Depths",
-        necromancerRoom:"Necromancer Chamber",
         dragonMountain:"Dragon Mountain",
         ending:"Kingdom Plaza"
     };
@@ -419,16 +410,13 @@ function openWorldMap(){
         html += `
         <button onclick="go('${loc}')">
         ${locationNames[loc] || loc}
-        </button>
-        <br>
+        </button><br>
         `;
     });
 
     html += `
     <br>
-    <button onclick="loadStory()">
-    Back
-    </button>
+    <button onclick="loadStory()">Back</button>
     `;
 
     document.getElementById("game").innerHTML = html;
@@ -488,9 +476,7 @@ function renderCombat(){
     document.getElementById("game").innerHTML = `
     <h2>${currentEnemy.name}</h2>
 
-    <p>
-    Enemy HP: ${currentEnemy.hp}
-    </p>
+    <p>Enemy HP: ${currentEnemy.hp}</p>
 
     <button onclick="attack()">Attack</button>
     <button onclick="defend()">Defend</button>
@@ -561,8 +547,6 @@ function enemyTurn(){
         return;
     }
 
-    updateHUD();
-
     renderCombat();
 }
 
@@ -577,7 +561,6 @@ function winCombat(){
         player.xp -= player.nextLevelXp;
 
         player.level++;
-
         player.skillPoints++;
 
         player.str += 2;
@@ -595,23 +578,13 @@ function winCombat(){
     if(currentEnemy.name === "Goblin Chief"){
 
         player.flags.goblinChiefDead = true;
-
         player.flags.cryptUnlocked = true;
-
         player.story = "cryptEntrance";
-    }
-
-    if(currentEnemy.name === "Necromancer"){
-
-        player.flags.necromancerDead = true;
-
-        player.story = "dragonMountain";
     }
 
     if(currentEnemy.name === "Ancient Dragon"){
 
         player.flags.dragonDead = true;
-
         player.story = "ending";
     }
 
@@ -624,8 +597,6 @@ function winCombat(){
     <h2>Victory!</h2>
 
     <p>You defeated the ${currentEnemy.name}.</p>
-
-    <p>Loot Found:</p>
 
     <p>${loot.join("<br>")}</p>
 
@@ -685,21 +656,6 @@ function randomEnemy(){
         }
     }
 
-    if(player.story === "crypt"){
-
-        if(Math.random() < 0.25){
-
-            return {
-                name:"Necromancer",
-                hp:180,
-                str:24,
-                def:12,
-                agi:12,
-                xp:80
-            };
-        }
-    }
-
     return enemies[
         Math.floor(Math.random() * enemies.length)
     ];
@@ -724,25 +680,11 @@ function generateLoot(enemy){
         drops.push("Potion");
     }
 
-    if(enemy.name === "Goblin Chief" && Math.random() < 0.50){
+    if(enemy.name === "Goblin Chief"){
 
         player.inventory.push("Chief's Blade");
 
         drops.push("RARE: Chief's Blade");
-    }
-
-    if(enemy.name === "Necromancer" && Math.random() < 0.35){
-
-        player.inventory.push("Shadow Robe");
-
-        drops.push("EPIC: Shadow Robe");
-    }
-
-    if(enemy.name === "Ancient Dragon"){
-
-        player.inventory.push("Dragon Fang");
-
-        drops.push("LEGENDARY: Dragon Fang");
     }
 
     return drops;
@@ -757,23 +699,13 @@ function openSkills(){
 
     <p>Available Points: ${player.skillPoints}</p>
 
-    <button onclick="upgrade('str')">
-    +STR
-    </button>
-
-    <button onclick="upgrade('def')">
-    +DEF
-    </button>
-
-    <button onclick="upgrade('agi')">
-    +AGI
-    </button>
+    <button onclick="upgrade('str')">+STR</button>
+    <button onclick="upgrade('def')">+DEF</button>
+    <button onclick="upgrade('agi')">+AGI</button>
 
     <br><br>
 
-    <button onclick="loadStory()">
-    Back
-    </button>
+    <button onclick="loadStory()">Back</button>
     `;
 }
 
@@ -801,9 +733,7 @@ function upgrade(stat){
 
 function openInventory(){
 
-    let html = `
-    <h2>Inventory</h2>
-    `;
+    let html = `<h2>Inventory</h2>`;
 
     if(player.inventory.length === 0){
 
@@ -832,9 +762,7 @@ function openInventory(){
     }
 
     html += `
-    <button onclick="loadStory()">
-    Back
-    </button>
+    <button onclick="loadStory()">Back</button>
     `;
 
     document.getElementById("game").innerHTML = html;
@@ -852,7 +780,7 @@ function useItem(index){
             player.hp = player.maxHp;
         }
 
-        alert("You used a Potion and restored HP!");
+        alert("You used a Potion!");
 
         player.inventory.splice(index,1);
     }
@@ -875,20 +803,6 @@ function useItem(index){
         player.equipment.weapon = "Chief's Blade";
 
         alert("Equipped Chief's Blade!");
-    }
-
-    else if(item === "Shadow Robe"){
-
-        player.equipment.armor = "Shadow Robe";
-
-        alert("Equipped Shadow Robe!");
-    }
-
-    else if(item === "Dragon Fang"){
-
-        player.equipment.weapon = "Dragon Fang";
-
-        alert("Equipped Dragon Fang!");
     }
 
     saveGame();
@@ -936,19 +850,7 @@ function buyPotion(){
     alert("Potion Purchased!");
 }
 
-/* ================= BOSS FIGHTS ================= */
-
-function startNecromancerFight(){
-
-    startCombat({
-        name:"Necromancer",
-        hp:180,
-        str:24,
-        def:12,
-        agi:12,
-        xp:80
-    });
-}
+/* ================= BOSS ================= */
 
 function startDragonFight(){
 
@@ -962,39 +864,32 @@ function startDragonFight(){
     });
 }
 
-/* ================= BATTLE END ================= */
+/* ================= END BATTLE ================= */
 
 function endAfterBattle(){
 
     saveGame();
 
-    if(player.story === "ending"){
-        loadStory();
-        return;
-    }
-
-    if(player.story === "cryptEntrance"){
-
-        if(!player.unlockedLocations.includes("cryptEntrance")){
-            player.unlockedLocations.push("cryptEntrance");
-        }
-
-        loadStory();
-        return;
-    }
-
-    if(player.story === "dragonMountain"){
-
-        if(!player.unlockedLocations.includes("dragonMountain")){
-            player.unlockedLocations.push("dragonMountain");
-        }
-
-        loadStory();
-        return;
-    }
-
-    endActivity();
+    loadStory();
 }
+
+/* ================= GLOBAL BUTTON ACCESS ================= */
+
+window.setClass = setClass;
+window.startGame = startGame;
+window.go = go;
+window.openWorldMap = openWorldMap;
+window.openSkills = openSkills;
+window.openInventory = openInventory;
+window.useItem = useItem;
+window.dropItem = dropItem;
+window.attack = attack;
+window.defend = defend;
+window.run = run;
+window.endActivity = endActivity;
+window.endAfterBattle = endAfterBattle;
+window.buyPotion = buyPotion;
+window.startDragonFight = startDragonFight;
 
 /* ================= INIT ================= */
 
