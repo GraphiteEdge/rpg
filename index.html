@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Hero Quest</title>
+<title>Hero Quest RPG</title>
 
 <style>
 body{
@@ -63,6 +63,7 @@ button:hover{
 <button onclick="setClass('Swordsman')">Swordsman</button>
 <button onclick="setClass('Warrior')">Warrior</button>
 <button onclick="setClass('Thief')">Thief</button>
+<button onclick="setClass('Mage')">Mage</button>
 </div>
 
 <button id="startBtn" onclick="startGame()">START / LOAD</button>
@@ -81,6 +82,9 @@ const defaultPlayer = () => ({
 
     hp:100,
     maxHp:100,
+
+    mp: 50,
+    maxMp: 50,
 
     str:10,
     def:10,
@@ -133,6 +137,7 @@ function updateHUD(){
     ${player.playerClass || "No Class"}<br><br>
     LV: ${player.level}<br>
     HP: ${player.hp}/${player.maxHp}<br>
+    MP: ${player.mp}/${player.maxMp}<br>
     GOLD: ${player.gold}<br><br>
 
     STR: ${player.str}<br>
@@ -179,6 +184,15 @@ function setClass(c){
         player.def = 5;
         player.agi = 15;
     }
+  
+  if(c === "Mage"){
+    player.str = 5;
+    player.def = 5;
+    player.agi = 15;
+
+    player.mp = 80;
+    player.maxMp = 80;
+}
 
     updateHUD();
 }
@@ -490,6 +504,30 @@ function endActivity(){
 
 /* ================= COMBAT ================= */
 
+const spells = {
+
+    fireball:{
+        name:"Fireball",
+        cost:15,
+        damage:35,
+        type:"damage"
+    },
+
+    heal:{
+        name:"Heal",
+        cost:12,
+        heal:30,
+        type:"heal"
+    },
+
+    lightning:{
+        name:"Lightning Bolt",
+        cost:20,
+        damage:50,
+        type:"damage"
+    }
+};
+
 function startCombat(enemy){
 
     currentEnemy = {...enemy};
@@ -512,9 +550,8 @@ function renderCombat(){
 
     <button onclick="attack()">Attack</button>
     <button onclick="itemUse()">Use Item</button>
+    <button onclick="spellMenu()">Spells</button>
     <button onclick="run()">Run</button>
-    `;
-}
 
 function calcDamage(att,def){
 
@@ -590,6 +627,72 @@ function run(){
     `;
 }
 
+function spellMenu(){
+
+    let html = `<h2>Spells</h2>`;
+    
+    for(let key in spells){
+
+        let spell = spells[key];
+
+        html += `
+        <div style="margin:10px;border:1px solid crimson;padding:10px;">
+            <b>${spell.name}</b><br>
+            Cost: ${spell.cost} MP<br><br>
+            <button onclick="castSpell('${key}')">
+                Cast
+            </button>
+        </div>
+        `;
+    }
+
+    html += `<button onclick="renderCombat()">Back</button>`;
+
+    document.getElementById("game").innerHTML = html;
+}
+
+function castSpell(key){
+
+    let spell = spells[key];
+
+    if(player.mp < spell.cost){
+        alert("Not enough MP!");
+        return;
+    }
+
+    player.mp -= spell.cost;
+
+    // DAMAGE SPELLS
+    if(spell.type === "damage"){
+
+        currentEnemy.hp -= spell.damage;
+
+        alert(spell.name + " hits for " + spell.damage);
+
+        if(currentEnemy.hp <= 0){
+            winCombat();
+            return;
+        }
+    }
+
+    // HEAL SPELL
+    if(spell.type === "heal"){
+
+        player.hp += spell.heal;
+
+        if(player.hp > player.maxHp){
+            player.hp = player.maxHp;
+        }
+
+        alert("Healed for " + spell.heal);
+    }
+
+    saveGame();
+    updateHUD();
+
+    enemyTurn();
+}
+
 function enemyTurn(){
 
     player.hp -= calcDamage(
@@ -658,6 +761,9 @@ function winCombat(){
         player.flags.dragonDead = true;
         player.story = "ending";
     }
+
+   player.mp += 10;
+   if(player.mp > player.maxMp) player.mp = player.maxMp;
 
     saveGame();
 
