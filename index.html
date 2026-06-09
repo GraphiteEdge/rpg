@@ -76,15 +76,14 @@ button:hover{
 /* ================= PLAYER ================= */
 
 const defaultPlayer = () => ({
-
     name:"",
     playerClass:"",
 
     hp:100,
     maxHp:100,
 
-    mp: 50,
-    maxMp: 50,
+    mp:50,
+    maxMp:50,
 
     str:10,
     def:10,
@@ -112,6 +111,7 @@ const defaultPlayer = () => ({
         elderQuest:false,
         goblinChiefDead:false,
         cryptUnlocked:false,
+        cryptUnlockedEvent:false,
         necromancerDead:false,
         dragonDead:false
     }
@@ -125,14 +125,12 @@ let returnNode = "village";
 /* ================= HUD ================= */
 
 function updateHUD(){
-
     const hud = document.getElementById("hud");
 
     let weapon = player.equipment.weapon || "None";
     let armor = player.equipment.armor || "None";
 
     hud.innerHTML = `
-
     <b>${player.name || "No Name"}</b><br>
     ${player.playerClass || "No Class"}<br><br>
     LV: ${player.level}<br>
@@ -150,22 +148,19 @@ function updateHUD(){
     WEAPON: ${weapon}<br>
     ARMOR: ${armor}<br><br>
 
-    <br><br>
-
-    <button onclick="openWorldMap()">
-    WORLD MAP
-    </button>
+    <button onclick="openWorldMap()">WORLD MAP</button>
     `;
 }
 
 /* ================= CLASS ================= */
 
 function setClass(c){
-
     player.playerClass = c;
 
     player.hp = 100;
     player.maxHp = 100;
+    player.mp = 50;
+    player.maxMp = 50;
 
     if(c === "Swordsman"){
         player.str = 15;
@@ -184,44 +179,42 @@ function setClass(c){
         player.def = 5;
         player.agi = 15;
     }
-  
-  if(c === "Mage"){
-    player.str = 5;
-    player.def = 5;
-    player.agi = 15;
 
-    player.mp = 80;
-    player.maxMp = 80;
-}
+    if(c === "Mage"){
+        player.str = 5;
+        player.def = 5;
+        player.agi = 15;
+        player.mp = 80;
+        player.maxMp = 80;
+    }
 
     updateHUD();
 }
 
 /* ================= SAVE / LOAD ================= */
 
-function saveGame(){
+function getSaveKey(name = player.name, playerClass = player.playerClass){
+    return "hero_" + name + "_" + playerClass;
+}
 
-    localStorage.setItem(
-        "hero_" + player.name + player.playerClass,
-        JSON.stringify(player)
-    );
+function saveGame(){
+    if(!player.name || !player.playerClass) return;
+    localStorage.setItem(getSaveKey(), JSON.stringify(player));
 }
 
 function loadGame(name){
-
-    let data = localStorage.getItem("hero_" + player.name + player.playerClass);
+    let saveKey = getSaveKey(name, player.playerClass);
+    let data = localStorage.getItem(saveKey);
 
     if(!data) return false;
 
     player = JSON.parse(data);
-
     return true;
 }
 
 /* ================= START GAME ================= */
 
 function startGame(){
-
     let name = document.getElementById("username").value.trim();
 
     if(!name){
@@ -229,15 +222,22 @@ function startGame(){
         return;
     }
 
+    if(!player.playerClass){
+        alert("Pick a Class!");
+        return;
+    }
+
+    const selectedClass = player.playerClass;
+    player.name = name;
+
     if(!loadGame(name)){
-
-        if(!player.playerClass){
-            alert("Pick a Class!");
-            return;
-        }
-
+        player = defaultPlayer();
         player.name = name;
-
+        player.playerClass = selectedClass;
+        player.story = "village";
+        player.visitedLocations = ["village"];
+        player.unlockedLocations = ["village"];
+        setClass(selectedClass);
         saveGame();
     }
 
@@ -247,98 +247,91 @@ function startGame(){
     document.getElementById("startBtn").style.display = "none";
 
     updateHUD();
-
     loadStory();
 }
 
 /* ================= STORY ================= */
 
 const story = {
-
-village:{
-    text:"The village of Ashmoor trembles in fear. Monsters roam the wilds at night.",
-    choices:[
-        {text:"Talk to Elder", next:"elder"},
-        {text:"Visit Shop", next:"shop"},
-        {text:"Go to Forest", next:"forest"},
-        {text:"Open Skills", action:openSkills},
-        {text:"Check Inventory", action:openInventory}
-    ]
-},
-
-elder:{
-    text:"Elder Rowan: 'Darkness spreads beyond the forest. We need a hero.'",
-    choices:[
-        {text:"Accept Quest", next:"questAccepted"},
-        {text:"Back", next:"village"}
-    ]
-},
-
-questAccepted:{
-    text:"The Elder asks you to slay the Goblin Chief hidden deep in the forest.",
-    action:()=>{
-
-        player.flags.elderQuest = true;
-
-        saveGame();
-
-        document.getElementById("game").innerHTML = `
-        <p>Quest Started: Defeat the Goblin Chief</p>
-        <button onclick="go('forest')">Enter Forest</button>
-        `;
+    village:{
+        text:"The village of Ashmoor trembles in fear. Monsters roam the wilds at night.",
+        choices:[
+            {text:"Talk to Elder", next:"elder"},
+            {text:"Visit Shop", next:"shop"},
+            {text:"Go to Forest", next:"forest"},
+            {text:"Open Skills", action:openSkills},
+            {text:"Check Inventory", action:openInventory}
+        ]
     },
-    choices:[]
-},
 
-shop:{
-    text:"A tired merchant greets you.",
-    choices:[
-        {text:"Buy Potion (15 Gold)", action:buyPotion},
-        {text:"Back", next:"village"}
-    ]
-},
+    elder:{
+        text:"Elder Rowan: 'Darkness spreads beyond the forest. We need a hero.'",
+        choices:[
+            {text:"Accept Quest", next:"questAccepted"},
+            {text:"Back", next:"village"}
+        ]
+    },
 
-forest:{
-    text:"The forest is filled with glowing eyes and distant growls.",
-    action:()=>startExploration("forest","village"),
-    choices:[]
-},
+    questAccepted:{
+        text:"The Elder asks you to slay the Goblin Chief hidden deep in the forest.",
+        action:()=>{
+            player.flags.elderQuest = true;
+            saveGame();
+            document.getElementById("game").innerHTML = `
+            <p>Quest Started: Defeat the Goblin Chief</p>
+            <button onclick="go('forest')">Enter Forest</button>
+            `;
+        },
+        choices:[]
+    },
 
-cryptEntrance:{
-    text:"Behind the Goblin Chief's camp lies an ancient crypt.",
-    choices:[
-        {text:"Enter Crypt", next:"crypt"},
-        {text:"Return to Village", next:"village"}
-    ]
-},
+    shop:{
+        text:"A tired merchant greets you.",
+        choices:[
+            {text:"Buy Potion (15 Gold)", action:buyPotion},
+            {text:"Back", next:"village"}
+        ]
+    },
 
-crypt:{
-    text:"Undead creatures rise from the darkness.",
-    action:()=>startExploration("crypt","cryptEntrance"),
-    choices:[]
-},
+    forest:{
+        text:"The forest is filled with glowing eyes and distant growls.",
+        action:()=>startExploration("forest","village"),
+        choices:[]
+    },
 
-dragonMountain:{
-    text:"At the peak of the mountain, the Ancient Dragon awakens.",
-    choices:[
-        {text:"Fight Dragon", action:startDragonFight},
-        {text:"Retreat", next:"village"}
-    ]
-},
+    cryptEntrance:{
+        text:"Behind the Goblin Chief's camp lies an ancient crypt.",
+        choices:[
+            {text:"Enter Crypt", next:"crypt"},
+            {text:"Return to Village", next:"village"}
+        ]
+    },
 
-ending:{
-    text:"With the Ancient Dragon defeated, the kingdom is finally safe.",
-    choices:[
-        {text:"Continue Exploring", next:"village"}
-    ]
-}
+    crypt:{
+        text:"Undead creatures rise from the darkness.",
+        action:()=>startExploration("crypt","cryptEntrance"),
+        choices:[]
+    },
 
+    dragonMountain:{
+        text:"At the peak of the mountain, the Ancient Dragon awakens.",
+        choices:[
+            {text:"Fight Dragon", action:startDragonFight},
+            {text:"Retreat", next:"village"}
+        ]
+    },
+
+    ending:{
+        text:"With the Ancient Dragon defeated, the kingdom is finally safe.",
+        choices:[
+            {text:"Continue Exploring", next:"village"}
+        ]
+    }
 };
 
 /* ================= STORY ENGINE ================= */
 
 function loadStory(){
-
     let node = story[player.story];
 
     if(!node){
@@ -354,24 +347,11 @@ function loadStory(){
     let html = `<p>${node.text}</p>`;
 
     node.choices.forEach(choice => {
-
         if(choice.action){
-
             const actionName = choice.action.name;
-
-            html += `
-            <button onclick="${actionName}()">
-            ${choice.text}
-            </button>
-            `;
-
+            html += `<button onclick="${actionName}()">${choice.text}</button>`;
         }else{
-
-            html += `
-            <button onclick="go('${choice.next}')">
-            ${choice.text}
-            </button>
-            `;
+            html += `<button onclick="go('${choice.next}')">${choice.text}</button>`;
         }
     });
 
@@ -381,7 +361,6 @@ function loadStory(){
 /* ================= NAVIGATION ================= */
 
 function go(next){
-
     player.story = next;
 
     if(!player.visitedLocations.includes(next)){
@@ -393,12 +372,10 @@ function go(next){
     }
 
     saveGame();
-
     loadStory();
 }
 
 function openWorldMap(){
-
     let html = `
     <h2>World Map</h2>
     <p>Travel to any unlocked location.</p>
@@ -416,56 +393,38 @@ function openWorldMap(){
     };
 
     player.unlockedLocations.forEach(loc => {
-
-        html += `
-        <button onclick="go('${loc}')">
-        ${locationNames[loc] || loc}
-        </button><br>
-        `;
+        html += `<button onclick="go('${loc}')">${locationNames[loc] || loc}</button><br>`;
     });
 
-    html += `
-    <br>
-    <button onclick="loadStory()">Back</button>
-    `;
-
+    html += `<br><button onclick="loadStory()">Back</button>`;
     document.getElementById("game").innerHTML = html;
 }
 
 function unlockLocation(loc){
-
     if(!player.unlockedLocations.includes(loc)){
         player.unlockedLocations.push(loc);
     }
 }
+
 /* ================= EXPLORATION ================= */
 
 function startExploration(area, returnTo){
-
     returnNode = returnTo;
 
-    // 🌑 CRYPT STORY PROGRESSION TRIGGER
     if(area === "crypt"){
-
-        // first entry after Goblin Chief death triggers deeper story shift
         if(player.flags.goblinChiefDead && !player.flags.cryptUnlockedEvent){
-
             player.flags.cryptUnlockedEvent = true;
 
             document.getElementById("game").innerHTML = `
                 <p>The Crypt reacts to your presence... something deeper awakens.</p>
-                <button onclick="startExploration('crypt','cryptEntrance')">
-                    Descend Further
-                </button>
+                <button onclick="startExploration('crypt','cryptEntrance')">Descend Further</button>
             `;
 
             saveGame();
             return;
         }
 
-        // chance to force deeper crypt boss encounter
         if(player.flags.goblinChiefDead && Math.random() < 0.25){
-
             startCombat({
                 name:"Crypt Wraith",
                 hp:90,
@@ -474,7 +433,6 @@ function startExploration(area, returnTo){
                 agi:12,
                 xp:45
             });
-
             return;
         }
     }
@@ -494,18 +452,14 @@ function startExploration(area, returnTo){
 }
 
 function endActivity(){
-
     player.story = returnNode;
-
     saveGame();
-
     loadStory();
 }
 
 /* ================= COMBAT ================= */
 
 const spells = {
-
     fireball:{
         name:"Fireball",
         cost:15,
@@ -528,10 +482,12 @@ const spells = {
     }
 };
 
+function calcDamage(att, def){
+    return Math.max(1, Math.floor(att - (def / 2)));
+}
+
 function startCombat(enemy){
-
     currentEnemy = {...enemy};
-
     renderCombat();
 
     if(currentEnemy.agi > player.agi){
@@ -540,33 +496,21 @@ function startCombat(enemy){
 }
 
 function renderCombat(){
-
     updateHUD();
 
     document.getElementById("game").innerHTML = `
     <h2>${currentEnemy.name}</h2>
-
     <p>Enemy HP: ${currentEnemy.hp}</p>
-
     <button onclick="attack()">Attack</button>
+    <button onclick="defend()">Defend</button>
     <button onclick="itemUse()">Use Item</button>
     <button onclick="spellMenu()">Spells</button>
     <button onclick="run()">Run</button>
-
-function calcDamage(att,def){
-
-    return Math.max(
-        1,
-        Math.floor(att - (def / 2))
-    );
+    `;
 }
 
 function attack(){
-
-    currentEnemy.hp -= calcDamage(
-        player.str,
-        currentEnemy.def
-    );
+    currentEnemy.hp -= calcDamage(player.str, currentEnemy.def);
 
     if(currentEnemy.hp <= 0){
         winCombat();
@@ -576,8 +520,12 @@ function attack(){
     enemyTurn();
 }
 
-function itemUse(){
+function defend(){
+    player.hp += 0;
+    enemyTurn();
+}
 
+function itemUse(){
     if(player.inventory.length === 0){
         alert("No items!");
         return;
@@ -585,42 +533,27 @@ function itemUse(){
 
     let item = player.inventory[0];
 
-    // POTION
     if(item === "Potion"){
-
         player.hp += 40;
         if(player.hp > player.maxHp) player.hp = player.maxHp;
-
         alert("You used a Potion!");
         player.inventory.splice(0,1);
-    }
-
-    // HERB
-    else if(item === "Herb"){
-
+    }else if(item === "Herb"){
         player.hp += 15;
         if(player.hp > player.maxHp) player.hp = player.maxHp;
-
         alert("You used an Herb!");
         player.inventory.splice(0,1);
-    }
-
-    // EQUIPMENT ITEM
-    else if(item === "Chief's Blade"){
-
+    }else if(item === "Chief's Blade"){
         player.equipment.weapon = "Chief's Blade";
         alert("Equipped Chief's Blade!");
     }
 
     saveGame();
     updateHUD();
-
-    // IMPORTANT: return to combat instead of opening inventory UI
     renderCombat();
 }
 
 function run(){
-
     document.getElementById("game").innerHTML = `
     <p>You escaped safely.</p>
     <button onclick="endActivity()">Continue</button>
@@ -628,31 +561,24 @@ function run(){
 }
 
 function spellMenu(){
-
     let html = `<h2>Spells</h2>`;
-    
+
     for(let key in spells){
-
         let spell = spells[key];
-
         html += `
         <div style="margin:10px;border:1px solid crimson;padding:10px;">
             <b>${spell.name}</b><br>
             Cost: ${spell.cost} MP<br><br>
-            <button onclick="castSpell('${key}')">
-                Cast
-            </button>
+            <button onclick="castSpell('${key}')">Cast</button>
         </div>
         `;
     }
 
     html += `<button onclick="renderCombat()">Back</button>`;
-
     document.getElementById("game").innerHTML = html;
 }
 
 function castSpell(key){
-
     let spell = spells[key];
 
     if(player.mp < spell.cost){
@@ -662,11 +588,8 @@ function castSpell(key){
 
     player.mp -= spell.cost;
 
-    // DAMAGE SPELLS
     if(spell.type === "damage"){
-
         currentEnemy.hp -= spell.damage;
-
         alert(spell.name + " hits for " + spell.damage);
 
         if(currentEnemy.hp <= 0){
@@ -675,42 +598,30 @@ function castSpell(key){
         }
     }
 
-    // HEAL SPELL
     if(spell.type === "heal"){
-
         player.hp += spell.heal;
-
         if(player.hp > player.maxHp){
             player.hp = player.maxHp;
         }
-
         alert("Healed for " + spell.heal);
     }
 
     saveGame();
     updateHUD();
-
     enemyTurn();
 }
 
 function enemyTurn(){
-
-    player.hp -= calcDamage(
-        currentEnemy.str,
-        player.def
-    );
+    player.hp -= calcDamage(currentEnemy.str, player.def);
 
     if(player.hp <= 0){
-
         player.hp = 0;
-
         updateHUD();
 
         document.getElementById("game").innerHTML = `
         <h1>GAME OVER</h1>
         <button onclick="location.reload()">Restart</button>
         `;
-
         return;
     }
 
@@ -718,77 +629,61 @@ function enemyTurn(){
 }
 
 function winCombat(){
-
     player.xp += currentEnemy.xp;
 
     let loot = generateLoot(currentEnemy);
 
     while(player.xp >= player.nextLevelXp){
-
         player.xp -= player.nextLevelXp;
-
         player.level++;
         player.skillPoints++;
-
         player.str += 2;
         player.def += 1;
         player.agi += 2;
-
         player.maxHp += 7;
         player.hp = player.maxHp;
 
-        player.nextLevelXp = Math.floor(
-            player.nextLevelXp * 1.35
-        );
+        player.nextLevelXp = Math.floor(player.nextLevelXp * 1.35);
     }
 
     if(currentEnemy.name === "Goblin Chief"){
+        player.flags.goblinChiefDead = true;
+        player.flags.cryptUnlocked = true;
 
-    player.flags.goblinChiefDead = true;
-    player.flags.cryptUnlocked = true;
+        if(!player.inventory.includes("Chief's Blade")){
+            player.inventory.push("Chief's Blade");
+        }
 
-    player.inventory.push("Chief's Blade");
+        unlockLocation("cryptEntrance");
+        unlockLocation("crypt");
+        unlockLocation("forest");
 
-    unlockLocation("cryptEntrance");
-    unlockLocation("crypt");
-    unlockLocation("forest"); // ensures map continuity
-
-    player.story = "cryptEntrance";
+        player.story = "cryptEntrance";
     }
 
     if(currentEnemy.name === "Ancient Dragon"){
-
         player.flags.dragonDead = true;
         player.story = "ending";
     }
 
-   player.mp += 10;
-   if(player.mp > player.maxMp) player.mp = player.maxMp;
+    player.mp += 10;
+    if(player.mp > player.maxMp) player.mp = player.maxMp;
 
     saveGame();
-
     updateHUD();
 
     document.getElementById("game").innerHTML = `
-
     <h2>Victory!</h2>
-
     <p>You defeated the ${currentEnemy.name}.</p>
-
     <p>${loot.join("<br>")}</p>
-
-    <button onclick="endAfterBattle()">
-    Continue
-    </button>
+    <button onclick="endAfterBattle()">Continue</button>
     `;
 }
 
 /* ================= ENEMIES ================= */
 
 function randomEnemy(){
-
     let enemies = [
-
         {
             name:"Wolf",
             hp:40,
@@ -797,7 +692,6 @@ function randomEnemy(){
             agi:8,
             xp:15
         },
-
         {
             name:"Goblin",
             hp:55,
@@ -806,7 +700,6 @@ function randomEnemy(){
             agi:6,
             xp:20
         },
-
         {
             name:"Dark Slime",
             hp:35,
@@ -815,13 +708,10 @@ function randomEnemy(){
             agi:4,
             xp:12
         }
-
     ];
 
     if(player.flags.elderQuest && !player.flags.goblinChiefDead){
-
         if(Math.random() < 0.20){
-
             return {
                 name:"Goblin Chief",
                 hp:120,
@@ -833,34 +723,27 @@ function randomEnemy(){
         }
     }
 
-    return enemies[
-        Math.floor(Math.random() * enemies.length)
-    ];
+    return enemies[Math.floor(Math.random() * enemies.length)];
 }
 
 /* ================= LOOT ================= */
 
 function generateLoot(enemy){
-
     let drops = [];
 
-    let gold = Math.floor(Math.random()*20)+5;
-
+    let gold = Math.floor(Math.random() * 20) + 5;
     player.gold += gold;
-
     drops.push(gold + " Gold");
 
     if(Math.random() < 0.35){
-
         player.inventory.push("Potion");
-
         drops.push("Potion");
     }
 
     if(enemy.name === "Goblin Chief"){
-
-        player.inventory.push("Chief's Blade");
-
+        if(!player.inventory.includes("Chief's Blade")){
+            player.inventory.push("Chief's Blade");
+        }
         drops.push("Item: Chief's Blade");
     }
 
@@ -870,10 +753,8 @@ function generateLoot(enemy){
 /* ================= SKILLS ================= */
 
 function openSkills(){
-
     document.getElementById("game").innerHTML = `
     <h2>Skill Tree</h2>
-
     <p>Available Points: ${player.skillPoints}</p>
 
     <button onclick="upgrade('str')">+STR</button>
@@ -881,126 +762,77 @@ function openSkills(){
     <button onclick="upgrade('agi')">+AGI</button>
 
     <br><br>
-
     <button onclick="loadStory()">Back</button>
     `;
 }
 
 function upgrade(stat){
-
     if(player.skillPoints <= 0){
-
         alert("No skill points!");
-
         return;
     }
 
     player[stat] += 2;
-
     player.skillPoints--;
 
     saveGame();
-
     updateHUD();
-
     openSkills();
 }
 
 /* ================= INVENTORY ================= */
 
 function openInventory(){
-
     let html = `<h2>Inventory</h2>`;
 
     if(player.inventory.length === 0){
-
         html += `<p>Empty</p>`;
-
     }else{
-
         player.inventory.forEach((item,index) => {
-
             html += `
             <div style="margin:10px;border:1px solid crimson;padding:10px;">
-
             <b>${item}</b><br><br>
-
-            <button onclick="useItem(${index})">
-            Use
-            </button>
-
-            <button onclick="dropItem(${index})">
-            Drop
-            </button>
-
+            <button onclick="useItem(${index})">Use</button>
+            <button onclick="dropItem(${index})">Drop</button>
             </div>
             `;
         });
     }
 
-    html += `
-    <button onclick="loadStory()">Back</button>
-    `;
-
+    html += `<button onclick="loadStory()">Back</button>`;
     document.getElementById("game").innerHTML = html;
 }
 
 function useItem(index){
-
     let item = player.inventory[index];
 
     if(item === "Potion"){
-
         player.hp += 40;
-
-        if(player.hp > player.maxHp){
-            player.hp = player.maxHp;
-        }
-
+        if(player.hp > player.maxHp) player.hp = player.maxHp;
         alert("You used a Potion!");
-
         player.inventory.splice(index,1);
-    }
-
-    else if(item === "Herb"){
-
+    }else if(item === "Herb"){
         player.hp += 15;
-
-        if(player.hp > player.maxHp){
-            player.hp = player.maxHp;
-        }
-
+        if(player.hp > player.maxHp) player.hp = player.maxHp;
         alert("You used an Herb!");
-
         player.inventory.splice(index,1);
-    }
-
-    else if(item === "Chief's Blade"){
-
+    }else if(item === "Chief's Blade"){
         player.equipment.weapon = "Chief's Blade";
-
         alert("Equipped Chief's Blade!");
     }
 
     saveGame();
-
     updateHUD();
-
     openInventory();
 }
 
 function dropItem(index){
-
     let item = player.inventory[index];
 
     if(confirm("Drop " + item + "?")){
-
         player.inventory.splice(index,1);
-
         saveGame();
-
         updateHUD();
-
         openInventory();
     }
 }
@@ -1008,20 +840,15 @@ function dropItem(index){
 /* ================= SHOP ================= */
 
 function buyPotion(){
-
     if(player.gold < 15){
-
         alert("Not enough Gold!");
-
         return;
     }
 
     player.gold -= 15;
-
     player.inventory.push("Potion");
 
     saveGame();
-
     updateHUD();
 
     alert("Potion Purchased!");
@@ -1030,7 +857,6 @@ function buyPotion(){
 /* ================= BOSS ================= */
 
 function startDragonFight(){
-
     startCombat({
         name:"Ancient Dragon",
         hp:300,
@@ -1044,9 +870,7 @@ function startDragonFight(){
 /* ================= END BATTLE ================= */
 
 function endAfterBattle(){
-
     saveGame();
-
     loadStory();
 }
 
@@ -1068,6 +892,7 @@ window.endAfterBattle = endAfterBattle;
 window.buyPotion = buyPotion;
 window.startDragonFight = startDragonFight;
 window.itemUse = itemUse;
+window.castSpell = castSpell;
 
 /* ================= INIT ================= */
 
